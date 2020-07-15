@@ -1,0 +1,108 @@
+---
+title: "Untitled"
+author: "Amer Akhtab"
+date: "15/07/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+```
+
+```{r cache=TRUE}
+storm_data <- read.csv("repdata_data_StormData.csv.bz2", stringsAsFactors = FALSE)
+```
+
+```{r}
+storm_data$Year <- year(mdy_hms(storm_data$BGN_DATE))
+
+
+
+storm_data_2 <- storm_data %>% select(Year, EVTYPE, PROPDMG, PROPDMGEXP, CROPDMG, 
+                                      CROPDMGEXP, FATALITIES, INJURIES)
+
+hist(storm_data_2$Year, breaks = 30)
+```
+
+```{r}
+storm_data_3 <- storm_data_2 %>% filter(Year >= 1995)
+
+storm_data_3 <- filter(storm_data_3, PROPDMG > 0 | CROPDMG > 0 | FATALITIES > 0 | INJURIES > 0)
+
+storm_data_3$EVTYPE <- toupper(storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("WINDS", "WIND", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("RAINS", "RAIN", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("STORMS", "STORM", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("TSTM|THUNDERSTORMS", "THUNDERSTORM", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("WINDS", "WIND", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("URBAN/SML STREAM FLD", "FLOOD", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("WILD/FOREST FIRE", "WILDFIRE", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("WEATHER/MIX", "WEATHER", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("FLOODING", "FLOOD", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("WIND/HAIL", "WIND", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("FLOOD/FLASH", "FLASH", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^FOG$", "DENSE FOG", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("HEAVY SURF/", "", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("STORM SURGE", "STORM SURGE/TIDE", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("SNOW", "HEAVY SNOW", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("WINDCHILL", "COLD/WIND CHILL", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("DRY MICROBURST", "THUNDERSTORM WIND", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("HEAVY HEAVY", "HEAVY", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("TIDE/TIDE", "TIDE", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^EXTREME COLD$", "EXTREME COLD/WIND CHILL", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^LANDSLIDE$", "AVALANCHE", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("CURRENTS$", "CURRENT", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^LAKE-EFFECT HEAVY SNOW$", "LAKE-EFFECT SNOW", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^HURRICANE$", "HURRICANE (TYPHOON)", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^RIVER FLOOD$", "FLOOD", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("WIND HAIL$", "WIND", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^HURRICANE/TYPHOON$", "HURRICANE (TYPHOON)", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("THUNDERSTORM WIND [(]G45[)]", "THUNDERSTORM WIND", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^URBAN ", "", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^GUSTY", "STRONG", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^WIND$", "STRONG WIND", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^HEAVY SURF$", "HIGH SURF", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^EXCESSIVE HEAVY SNOW$", "HEAVY SNOW", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^COLD$", "COLD/WIND CHILL", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^ICY ROADS$", "FROST/FREEZE", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^HEAT WAVE$", "HEAT", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^LIGHT HEAVY SNOW$", "SLEET", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^HEAVY SNOW SQUALLS$", "HEAVY SNOW", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE[grep("FREEZING RAIN$",storm_data_3$EVTYPE)] <- "SLEET"
+storm_data_3$EVTYPE <- gsub("^GLAZE$", "SLEET", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^SMALL HAIL$", "HAIL", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("DROUGHT/EXCESSIVE HEAT$", "EXCESSIVE HEAT", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^EXTREME HEAT$", "EXCESSIVE HEAT", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE[grep("HEAVY SNOW",storm_data_3$EVTYPE)] <- "HEAVY SNOW"
+storm_data_3$EVTYPE <- gsub("^MIXED PRECIPITATION$", "SLEET", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^FREEZE$", "FROST/FREEZE", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^THUNDERSTORM$", "THUNDERSTORM WIND", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("THUNDERSTORM WIND [(]G40[)]", "THUNDERSTORM WIND", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("FLOODS", "FLOOD", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^ASTRONOMICAL HIGH TIDE$", "STORM SURGE/TIDE", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE[grep("HURRICANE|TYPHOON",storm_data_3$EVTYPE)] <- "HURRICANE (TYPHOON)"
+storm_data_3$EVTYPE <- gsub("^WIND DAMAGE$", "STRONG WIND", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^FREEZING DRIZZLE$", "SLEET", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^SEVERE THUNDERSTORM$", "THUNDERSTORM WIND", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^UNSEASONABLY WARM$", "DROUGHT", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^DAMAGING FREEZE$", "FROST/FREEZE", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE[grep("LIGHTNING",storm_data_3$EVTYPE)] <- "LIGHTNING"
+storm_data_3$EVTYPE[grep("^TORNADO",storm_data_3$EVTYPE)] <- "TORNADO"
+storm_data_3$EVTYPE <- gsub("MIXED PRECIP$", "SLEET", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^URBAN/SMALL STREAM FLOOD$", "FLOOD", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^FLOOD/RAIN/WIND$", "FLOOD", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^GRADIENT WIND$", "STRONG WIND", storm_data_3$EVTYPE)
+storm_data_3$EVTYPE <- gsub("^MUDSLIDE$", "AVALANCHE", storm_data_3$EVTYPE)
+```
+
+```{r}
+storm_data_4 <- storm_data_3 %>% group_by(EVTYPE) %>% filter(n()>=10)
+```
+
+sort(table(storm_data_3$EVTYPE), decreasing = TRUE)[1:48]
