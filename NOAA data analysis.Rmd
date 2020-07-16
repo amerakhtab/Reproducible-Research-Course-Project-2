@@ -105,4 +105,61 @@ storm_data_3$EVTYPE <- gsub("^MUDSLIDE$", "AVALANCHE", storm_data_3$EVTYPE)
 storm_data_4 <- storm_data_3 %>% group_by(EVTYPE) %>% filter(n()>=10)
 ```
 
-sort(table(storm_data_3$EVTYPE), decreasing = TRUE)[1:48]
+```{r}
+health_storm <- storm_data_4 %>% mutate(Total_Casualties = FATALITIES + INJURIES) 
+Casualties <- health_storm %>% group_by(EVTYPE) %>% summarise(Casualties=sum(Total_Casualties)) %>% arrange(desc(Casualties))
+```
+
+```{r}
+g <- Casualties[1:10,] %>% ggplot(aes(Casualties,reorder(EVTYPE,Casualties),fill=EVTYPE))
+
+g + geom_bar(stat = "Identity")
+```
+
+```{r}
+economic_storm <- storm_data_4 %>% filter(PROPDMG > 0 | CROPDMG > 0) %>% select(EVTYPE,PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP)
+
+economic_storm$PROPDMGEXP <- toupper(economic_storm$PROPDMGEXP)
+economic_storm$CROPDMGEXP <- toupper(economic_storm$CROPDMGEXP)
+
+economic_storm <- mutate(economic_storm, CROPDMGFACTOR = NA)
+economic_storm <- mutate(economic_storm, PROPDMGFACTOR = NA)
+
+economic_storm$CROPDMGFACTOR[(economic_storm$CROPDMGEXP == "?")] <- 10^0
+economic_storm$CROPDMGFACTOR[(economic_storm$CROPDMGEXP == "")] <- 10^0
+economic_storm$CROPDMGFACTOR[(economic_storm$CROPDMGEXP == "0")] <- 10^0
+economic_storm$CROPDMGFACTOR[(economic_storm$CROPDMGEXP == "2")] <- 10^2
+economic_storm$CROPDMGFACTOR[(economic_storm$CROPDMGEXP == "K")] <- 10^3
+economic_storm$CROPDMGFACTOR[(economic_storm$CROPDMGEXP == "M")] <- 10^6
+economic_storm$CROPDMGFACTOR[(economic_storm$CROPDMGEXP == "B")] <- 10^9
+
+economic_storm$PROPDMGFACTOR[(economic_storm$PROPDMGEXP == "-")] <- 10^0
+economic_storm$PROPDMGFACTOR[(economic_storm$PROPDMGEXP == "")] <- 10^0
+economic_storm$PROPDMGFACTOR[(economic_storm$PROPDMGEXP == "?")] <- 10^0
+economic_storm$PROPDMGFACTOR[(economic_storm$PROPDMGEXP == "+")] <- 10^0
+economic_storm$PROPDMGFACTOR[(economic_storm$PROPDMGEXP == "0")] <- 10^0
+economic_storm$PROPDMGFACTOR[(economic_storm$PROPDMGEXP == "1")] <- 10^1
+economic_storm$PROPDMGFACTOR[(economic_storm$PROPDMGEXP == "2")] <- 10^2
+economic_storm$PROPDMGFACTOR[(economic_storm$PROPDMGEXP == "3")] <- 10^3
+economic_storm$PROPDMGFACTOR[(economic_storm$PROPDMGEXP == "4")] <- 10^4
+economic_storm$PROPDMGFACTOR[(economic_storm$PROPDMGEXP == "5")] <- 10^5
+economic_storm$PROPDMGFACTOR[(economic_storm$PROPDMGEXP == "6")] <- 10^6
+economic_storm$PROPDMGFACTOR[(economic_storm$PROPDMGEXP == "7")] <- 10^7
+economic_storm$PROPDMGFACTOR[(economic_storm$PROPDMGEXP == "8")] <- 10^8
+economic_storm$PROPDMGFACTOR[(economic_storm$PROPDMGEXP == "H")] <- 10^2
+economic_storm$PROPDMGFACTOR[(economic_storm$PROPDMGEXP == "K")] <- 10^3
+economic_storm$PROPDMGFACTOR[(economic_storm$PROPDMGEXP == "M")] <- 10^6
+economic_storm$PROPDMGFACTOR[(economic_storm$PROPDMGEXP == "B")] <- 10^9
+```
+
+```{r}
+economic_storm <- economic_storm %>% mutate(Total.Damage = PROPDMG * PROPDMGFACTOR + CROPDMG * CROPDMGFACTOR)
+Damage <- economic_storm %>% group_by(EVTYPE) %>% summarise(Total_Damage = sum(Total.Damage)) %>% arrange(desc(Total_Damage))
+Damage[1:10,]
+```
+
+```{r}
+g1 <- Damage[1:10,] %>% ggplot(aes(Total_Damage,reorder(EVTYPE,Total_Damage),fill=EVTYPE))
+
+g1 + geom_bar(stat = "Identity")
+```
