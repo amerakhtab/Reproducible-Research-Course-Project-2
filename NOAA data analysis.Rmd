@@ -1,40 +1,72 @@
 ---
-title: "Untitled"
+title: "An Analysis of the NOAA Storm Database"
 author: "Amer Akhtab"
 date: "15/07/2020"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
 ```
+## Synopsis
 
+The U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.
+
+This analysis tries to find out which type of events caused the most harm with respect to population health and which of them had the most economic consequences throughout the years.
+
+In this analysis, we tried to match the event types with the National Weather Service Storm Data Documentation. Therefore, we cleaned the data so that we had only the events as mentioned in the documentation. And then, proceeded with the plotting of the top ten event which caused the most casualties and damages.
+
+Links to the database and the documentation are given below
+
+* [Storm Data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2)
+* [Storm Data Documentation](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf)
+
+### Target of the analysis
+
+* Across the United States, which types of events (as indicated in the \color{red}{\verb|EVTYPE|}EVTYPE variable) are most harmful with respect to population health?  
+* Across the United States, which types of events have the greatest economic consequences?
+
+## Data Processing
+
+Loading the required libraries.
 ```{r}
 library(dplyr)
 library(ggplot2)
 library(lubridate)
 ```
 
+After downloading the data from the above link, reading the data from directory.
 ```{r cache=TRUE}
 storm_data <- read.csv("repdata_data_StormData.csv.bz2", stringsAsFactors = FALSE)
 ```
 
-```{r}
+Column names of the dataframe.
+```{r cache=TRUE}
+names(storm_data)
+```
+
+Getting the year data from the date of events and adding a column 'Year' to the dataframe. And only keeping the columns required for the analysis.
+```{r cache=TRUE}
 storm_data$Year <- year(mdy_hms(storm_data$BGN_DATE))
-
-
 
 storm_data_2 <- storm_data %>% select(Year, EVTYPE, PROPDMG, PROPDMGEXP, CROPDMG, 
                                       CROPDMGEXP, FATALITIES, INJURIES)
-
-hist(storm_data_2$Year, breaks = 30)
+```
+Plotting a histogram of the data, to see from 1950 till 2011, if the data has any difference in frequencies.
+```{r cache=TRUE}
+hist(storm_data_2$Year, breaks = 30,xlab = "Year", main = "Histogram of storm data from 1950 to 2011")
 ```
 
-```{r}
+As we can see from the histogram above, the data has quite a jump in frequency since 1995. As this analysis is trying to find out a comparison among the event types, we will use only the data from 1995 to 2011.
+```{r cache=TRUE}
 storm_data_3 <- storm_data_2 %>% filter(Year >= 1995)
-
+```
+Filtering out the observations which do not have any property or crop damage and injury or fatality.
+```{r cache=TRUE}
 storm_data_3 <- filter(storm_data_3, PROPDMG > 0 | CROPDMG > 0 | FATALITIES > 0 | INJURIES > 0)
-
+```
+The event types in the data does not properly match with the documentation. Therefore, most of them are corrected accordingly. 
+```{r cache=TRUE}
 storm_data_3$EVTYPE <- toupper(storm_data_3$EVTYPE)
 storm_data_3$EVTYPE <- gsub("WINDS", "WIND", storm_data_3$EVTYPE)
 storm_data_3$EVTYPE <- gsub("RAINS", "RAIN", storm_data_3$EVTYPE)
@@ -100,23 +132,36 @@ storm_data_3$EVTYPE <- gsub("^FLOOD/RAIN/WIND$", "FLOOD", storm_data_3$EVTYPE)
 storm_data_3$EVTYPE <- gsub("^GRADIENT WIND$", "STRONG WIND", storm_data_3$EVTYPE)
 storm_data_3$EVTYPE <- gsub("^MUDSLIDE$", "AVALANCHE", storm_data_3$EVTYPE)
 ```
-
-```{r}
+Even after that, the event types which appeared less than ten times are filtered out.
+```{r cache=TRUE}
 storm_data_4 <- storm_data_3 %>% group_by(EVTYPE) %>% filter(n()>=10)
 ```
+### Population Health
 
-```{r}
+As we are looking for harm done to population health, we are considering the summation of injuries and fatalities as casualites. Here, we are finding out the event types which caused the most casualties and arranging them in descending order.
+```{r cache=TRUE}
 health_storm <- storm_data_4 %>% mutate(Total_Casualties = FATALITIES + INJURIES) 
 Casualties <- health_storm %>% group_by(EVTYPE) %>% summarise(Casualties=sum(Total_Casualties)) %>% arrange(desc(Casualties))
 ```
 
-```{r}
-g <- Casualties[1:10,] %>% ggplot(aes(Casualties,reorder(EVTYPE,Casualties),fill=EVTYPE))
+Exponents data in the PROPDMGEXP and CROPDMGEXP are converted into the powers of ten as below:  
 
-g + geom_bar(stat = "Identity")
-```
+0 to 10^0  
+1 to 10^1  
+2 to 10^2  
+3 to 10^3  
+4 to 10^4  
+5 to 10^5  
+6 to 10^6  
+7 to 10^7  
+8 to 10^8  
+9 to 10^9  
+H to 10^2  
+K to 10^3  
+M to 10^6  
+B to 10^9  
 
-```{r}
+```{r cache=TRUE}
 economic_storm <- storm_data_4 %>% filter(PROPDMG > 0 | CROPDMG > 0) %>% select(EVTYPE,PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP)
 
 economic_storm$PROPDMGEXP <- toupper(economic_storm$PROPDMGEXP)
@@ -151,15 +196,27 @@ economic_storm$PROPDMGFACTOR[(economic_storm$PROPDMGEXP == "K")] <- 10^3
 economic_storm$PROPDMGFACTOR[(economic_storm$PROPDMGEXP == "M")] <- 10^6
 economic_storm$PROPDMGFACTOR[(economic_storm$PROPDMGEXP == "B")] <- 10^9
 ```
-
+### Economic consequences
+The crop damage and property damage are summed to total damage done to economy.
 ```{r}
 economic_storm <- economic_storm %>% mutate(Total.Damage = PROPDMG * PROPDMGFACTOR + CROPDMG * CROPDMGFACTOR)
 Damage <- economic_storm %>% group_by(EVTYPE) %>% summarise(Total_Damage = sum(Total.Damage)) %>% arrange(desc(Total_Damage))
+```
+## Results
+In the tables and plots below, we can see the top ten events which caused the most casualties and the most economic damage.
+```{r cache=TRUE}
+Casualties[1:10,]
 Damage[1:10,]
 ```
 
-```{r}
+```{r cache=TRUE}
+g <- Casualties[1:10,] %>% ggplot(aes(Casualties,reorder(EVTYPE,Casualties),fill=EVTYPE))
+
+g + geom_bar(stat = "Identity") + ggtitle("Top ten weather events which caused casualties in the US") + scale_fill_discrete(name="Event types") + xlab("Total number of Casualties") + ylab("Event types")
+```
+
+```{r cache=TRUE}
 g1 <- Damage[1:10,] %>% ggplot(aes(Total_Damage,reorder(EVTYPE,Total_Damage),fill=EVTYPE))
 
-g1 + geom_bar(stat = "Identity")
+g1 + geom_bar(stat = "Identity") + ggtitle("Top ten weather events which caused economic damages in the US") + scale_fill_discrete(name="Event types") + xlab("Total Damage in USD") + ylab("Event types")
 ```
